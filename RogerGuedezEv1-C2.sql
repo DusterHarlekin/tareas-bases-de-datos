@@ -1,0 +1,53 @@
+/*
+NOMBRE: ROGER GUEDEZ
+CI: 26.540.388
+MATERIA: BASES DE DATOS II
+DOCENTE: JULIO CASTILLO
+*/
+
+-- CREAMOS LA BASE DE DATOS
+CREATE DATABASE IF NOT EXISTS biblioteca;
+USE biblioteca;
+
+-- CREAMOS LA TABLA DE LIBROS
+CREATE TABLE IF NOT EXISTS Libros (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    autor VARCHAR(255) NOT NULL,
+    precio DECIMAL(10, 2) NOT NULL,
+    nro_paginas INTEGER(4) NOT NULL
+)ENGINE=INNODB;
+
+-- CREAMOS LA TABLA CONTROL
+CREATE TABLE IF NOT EXISTS Control (
+    fecha_cambio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario VARCHAR(50) NOT NULL,
+    libro_id INT NOT NULL,
+    nuevo_precio DECIMAL(10, 2) NOT NULL,
+    precio_anterior DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (libro_id) REFERENCES Libros(id) ON DELETE CASCADE
+)ENGINE=INNODB;
+
+-- CREAMOS EL TRIGGER PARA AUDITAR LOS CAMBIOS DE PRECIO DE LOS LIBROS
+DELIMITER //
+
+DROP TRIGGER IF EXISTS auditoria_precio_libros;
+CREATE TRIGGER auditoria_precio_libros
+BEFORE UPDATE ON Libros
+FOR EACH ROW
+BEGIN
+    -- VERIFICAMOS SI EL PRECIO CAMBIO
+    IF OLD.precio <> NEW.precio THEN
+        INSERT INTO Control (usuario, libro_id, nuevo_precio, precio_anterior)
+        VALUES (USER(), OLD.id, NEW.precio, OLD.precio);
+    END IF;
+END //
+
+DELIMITER ; 
+
+-- VERIFICAMOS QUE FUNCIONE
+SELECT * FROM Control;
+INSERT INTO Libros (titulo, autor, precio, nro_paginas) VALUES ('Cien años de soledad',  'Gabriel García Márquez', 200, 464);
+UPDATE Libros SET precio=20 WHERE id=1;
+SELECT * FROM Control;
+SELECT * FROM Libros;
